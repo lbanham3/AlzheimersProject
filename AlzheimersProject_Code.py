@@ -7,7 +7,6 @@ import pandas as pd
 import cv2
 import matplotlib.pyplot as plt
 import os
-from sklearn.decomposition import PCA
 
 # Read in the MRI dataset
 pathTrain = '/Users/laurabanham/OneDrive - Georgia Institute of Technology/CDA/Course Project/Alzheimer_s Dataset/train'
@@ -44,28 +43,14 @@ def group_dataset(arr):
     return(alzGrouped, categoriesOrdered)
 
 
-# Making dataset sparse CSR, splitting into train:test and scaling fitting models-------------------
-# Making dataset into sparse CSR matrix
-# import scipy
-# ft_cols = [x for x in alzDf.columns if x != 'Label']
-# sparse_x = scipy.sparse.csr_matrix(alzDf[ft_cols].astype(float).values)
-
-# Splitting into train:test
+# Splitting dataset into train:test subsets-------------------
 from sklearn.model_selection import train_test_split
 train_x, test_x, train_y, test_y = train_test_split(np.vstack(alzArr[:,1]), alzArr[:,0], test_size=0.2, random_state=96)
+
 unique, counts = np.unique(train_y, return_counts=True)
 print("Labels: " + str(unique) + "\n Training set counts: " + str(counts))
-
 unique2, counts2 = np.unique(test_y, return_counts=True)
 print("Labels: " + str(unique2) + "\n Testing set counts: " + str(counts2))
-
-train_x_sparse, test_x_sparse, train_y_sparse, test_y_sparse = train_test_split(sparse_x, alzDf['Label'], test_size=0.2, random_state=96)
-
-# Scaling
-# from sklearn.preprocessing import MinMaxScaler 
-# scaler = MinMaxScaler()
-# train_x_scale = scaler.fit_transform(train_x)
-# test_x_scale = scaler.transform(test_x)
 
 # Fitting Models-----------------------------
 from sklearn.model_selection import GridSearchCV
@@ -73,10 +58,7 @@ from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
-from sklearn.neural_network import MLPClassifier
-from xgboost import XGBClassifier
-
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 
 # Finding the optimal parameters for each model--------------
 # SVM
@@ -142,36 +124,6 @@ rf_grid = GridSearchCV(
 rf_grid.fit(train_x, train_y)
 print("Random Forest Best Parameters:", rf_grid.best_params_)
 # Random Forest Best Parameters: {'criterion': 'gini', 'n_estimators': 150}
-
-# Gradient Boosting
-params = dict(n_estimators = [10, 50, 100, 150, 200])
-
-gradB_grid = GridSearchCV(
-    estimator=GradientBoostingClassifier(),
-    param_grid=params,
-    cv=5,
-    n_jobs=5,
-    verbose=1
-)
-gradB_grid.fit(train_x, train_y)
-print("Gradient Boosting Best Parameters:", gradB_grid.best_params_)
-
-# Neural Network
-params = dict(hidden_layer_sizes = [(100, 75, 50), (10, 10, 10), (75, 50), (50, 50), (10, 10)],
-              activation = ['logistic', 'tanh', 'relu'],
-              alpha = [0.0001, 0.001, 0.005],
-              early_stopping = [True, False])
-
-nn_grid = GridSearchCV(
-    estimator=MLPClassifier(),
-    param_grid=params,
-    cv=5,
-    n_jobs=5,
-    verbose=1
-)
-nn_grid.fit(train_x, train_y)
-print("Neural Network Best Parameters:", nn_grid.best_params_)
-
 
 # Fitting the models with the optimal parameters-----------------------------
 # Multinomial Logistic Regression------------
@@ -310,59 +262,7 @@ print("AdaBoost Test Dataset Accuracy:", metrics.accuracy_score(test_y, adaB_pre
 # Precision, Recall and F1 Scores
 print(metrics.classification_report(test_y, adaB_pred_y))
 
-# Gradient Boosting-------
-# Gradient Boosting Best Parameters: {'n_estimators': 10}
-gradBOptimal = GradientBoostingClassifier()
-gradBOptimal.fit(train_x, train_y)
-
-
-gradBOptimal = XGBClassifier()
-d = {x: y for y, x in enumerate(set(train_y))}
-train_y2 = [d[y] for y in train_y]
-train_y2
-
-d = {x: y for y, x in enumerate(set(test_y))}
-test_y2 = [d[y] for y in test_y]
-test_y2
-
-gradBOptimal.fit(train_x, train_y2)
-
-
-## Make predictions
-# Predicting the test set results
-gradB_pred_y = gradBOptimal.predict(test_x)
-
-## Make confusion matrix
-print(pd.crosstab(test_y2, gradB_pred_y))
-
-## Print the accuracy of the model
-print("Gradient Boosting Train Dataset Accuracy:", metrics.accuracy_score(train_y, gradBOptimal.predict(train_x)))
-print("Gradient Boosting Test Dataset Accuracy:", metrics.accuracy_score(test_y, gradB_pred_y))
-
-# Precision, Recall and F1 Scores
-print(metrics.classification_report(test_y, gradB_pred_y))
-
-# Neural Network-------
-# Neural Network Best Parameters: {'n_estimators': 10}
-nnOptimal = MLPClassifier()
-nnOptimal.fit(train_x, train_y)
-
-## Make predictions
-# Predicting the test set results
-nn_pred_y = nnOptimal.predict(test_x)
-
-## Make confusion matrix
-print(pd.crosstab(test_y, nn_pred_y))
-
-## Print the accuracy of the model
-print("Neural Network Train Dataset Accuracy:", metrics.accuracy_score(train_y, nnOptimal.predict(train_x)))
-print("Neural Network Test Dataset Accuracy:", metrics.accuracy_score(test_y, nn_pred_y))
-
-# Precision, Recall and F1 Scores
-print(metrics.classification_report(test_y, nn_pred_y))
-
-
-# NEW MODEL
+# NEW MODEL - AdaBoost 2 -------------
 from sklearn.ensemble import VotingClassifier
 newMod = VotingClassifier([('svm', SVC(kernel='linear', gamma=1, C=0.1, probability=True)), 
                             ('logReg', linear_model.LogisticRegression(multi_class='multinomial', solver='newton-cg'))], voting='soft')
@@ -384,21 +284,7 @@ print("AdaBoost2 Test Dataset Accuracy:", metrics.accuracy_score(test_y, ab2_pre
 print(metrics.classification_report(test_y, ab2_pred_y))
 
 
-# -------------------------------------
-# Show all images in dataframe
-for i, row in alzDf.iterrows():
-    img = row['Img'].reshape(m,n)
-    label = row['Label']+str(i)
-    plt.imshow(img, cmap="gray")
-    plt.title(label)
-    plt.show()
-
-# Show one image (by index in dataframe)
-img = alzDf['Img'][1].reshape(m,n)
-label = alzDf['Label'][1]+str(1)
-plt.imshow(img, cmap="gray")
-plt.title(label)
-plt.show()
+# Miscellaneous Code -------------------------------------
 
 # Show average and standard deviation images
 alzGrouped, catOrder = group_dataset(alzArr)
@@ -465,116 +351,3 @@ g = sns.catplot(
 g.despine(left=True)
 g.set_axis_labels("Metric", "")
 plt.show()
-
-# PCA the dataset -------------------------
-# Finding an optimal number of components using percent variance explained
-x = alzDf.drop('Label', axis=1)
-pca = PCA(n_components=200)
-covMat = pca.fit(x)
-
-variance = covMat.explained_variance_ratio_
-var = np.cumsum(np.round(covMat.explained_variance_ratio_, decimals=5)*100)
-
-plt.plot(var)
-plt.ylabel("Percentage of Variance Explained")
-plt.xlabel("Number of Features")
-plt.title("PCA with 200 Components")
-plt.show()
-
-# ~90% of the variance is explained by 142 of the components
-
-# Top 2 principal components
-pca = PCA(n_components=2)
-princeComp = pca.fit_transform(x)
-principalDf = pd.DataFrame(princeComp, columns = ['principal component 1', 'principal component 2'])
-
-# Plotting 2 Component PCA
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1) 
-ax.set_xlabel('Principal Component 1', fontsize = 15)
-ax.set_ylabel('Principal Component 2', fontsize = 15)
-ax.set_title('PCA for Top 2 Components', fontsize = 20)
-colors = ['r', 'g', 'b', 'y']
-for category, color in zip(categories, colors):
-    indicesToKeep = alzDf['Label'] == category.split("Demented")[0]
-    ax.scatter(principalDf.loc[indicesToKeep, 'principal component 1'],
-               principalDf.loc[indicesToKeep, 'principal component 2'],
-               c = color,
-               s = 50)
-ax.legend(categories)
-ax.grid()
-plt.show()
-
-# Plotting reconstructed image
-twoDimData = pca.fit_transform(x)
-newImage = pca.inverse_transform(twoDimData)
-newImage[0].shape
-plt.imshow(newImage[1].reshape(m,n),
-              cmap = plt.cm.gray, interpolation='nearest',
-              clim=(0, 255))
-plt.show()
-
-
-# PCA the dataset by GROUP -------------------------
-alzGrouped, catOrder = group_dataset(alzArr, "Label")
-
-def grouped_pca_var_explained(dfGrouped):
-    var = list()
-    for dataset in dfGrouped:
-        xCat = dataset.drop('Label', axis=1)
-        pcaCat = PCA(n_components=50)
-        covMatCat = pcaCat.fit(xCat)
-        varCat = np.cumsum(np.round(covMatCat.explained_variance_ratio_, decimals=5)*100)
-        var.append(varCat)
-    return(var)
-
-var = grouped_pca_var_explained(alzGrouped)
-
-for varSet, category in zip(var, catOrder):
-    plt.plot(varSet)
-    plt.ylabel("Percentage of Variance Explained")
-    plt.xlabel("Number of Features")
-    title1 = "PCA with 50 Components for " + category + " Demented"
-    plt.title(title1)
-    plt.show()
-
-def grouped_pca_n_comp(nComp, dfGrouped, categoriesOrdered):
-    pcDfCat = pd.DataFrame()
-    newImage = list()
-    colNames = list()
-    for dataset, category in zip(dfGrouped, categoriesOrdered):
-        xCat = dataset.drop('Label', axis=1)
-        pcaCat = PCA(n_components=nComp)
-        princeCompCat = pcaCat.fit_transform(xCat)
-        newImage.append(pcaCat.inverse_transform(princeCompCat))
-        for i in range(nComp):
-            colNames.append("pc" + str(i%nComp+1) + category)
-        principalDfCat = pd.DataFrame(princeCompCat)
-        pcDfCat = pd.concat([pcDfCat, principalDfCat], axis=1)
-    pcDfCat.columns = colNames
-    return(pcDfCat, newImage)
-
-groupPCDf, newImageList = grouped_pca_n_comp(20, alzGrouped, catOrder)
-
-# Plotting 2 Component PCA by Group
-for i, category in zip(range(0,8,2), catOrder):
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1) 
-    ax.set_xlabel('Principal Component 1', fontsize = 10)
-    ax.set_ylabel('Principal Component 2', fontsize = 10)
-    title2 = 'PCA for Top 2 Components of ' + str(category) + " Demented Patients"
-    ax.set_title(title2, fontsize = 15)
-    ax.scatter(groupPCDf.iloc[:,i],
-                groupPCDf.iloc[:,i+1])
-    ax.grid()
-    plt.show()
-
-# Plotting Reconstructed Image by Group
-nComp = 20
-for image, category in zip(newImageList, catOrder):
-    plt.imshow(image[1].reshape(m,n),
-              cmap = plt.cm.gray, interpolation='nearest',
-              clim=(0, 255))
-    title3 = 'Reconstructed Image with ' + str(nComp) + ' Components for ' + str(category) + " Demented Patients"
-    plt.title(title3, fontsize = 10)
-    plt.show()
