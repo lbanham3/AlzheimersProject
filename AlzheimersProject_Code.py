@@ -330,15 +330,15 @@ plt.show()
 
 # Plotting model results
 import seaborn as sns
-df = pd.DataFrame(data=np.array([['Logistic Regression',	0.9824,	0.98, 0.98, 0.98],
-                                ['SVM',	0.9844,	0.98,	0.98,	0.98],
-                                ['KNN',	0.9980,	1.00,	1.00,	1.00],
-                                ['Naive Bayes', 0.4829,	0.51,	0.48,	0.48],
-                                ['Decision Tree', 0.7278,	0.72,	0.73,	0.72],
-                                ['Random Forest',	0.9083,	0.91,	0.91,	0.91],
-                                ['AdaBoost 1',	0.9805,	0.98,	0.98,	0.98],
-                                ['AdaBoost 2', 	0.9844,	0.98,	0.98,	0.98]]), 
-                                columns=['Model', "Test Acc", "Precision", "Recall", "F1"])
+df = pd.DataFrame(data=np.array([['Logistic Regression', 0.9824, 0.98, 0.98, 0.98],
+                                ['SVM',	0.9844,	0.98, 0.98,	0.98],
+                                ['KNN',	0.9980,	1.00, 1.00, 1.00],
+                                ['Naive Bayes', 0.4829,	0.51, 0.48,	0.48],
+                                ['Decision Tree', 0.7278, 0.72,	0.73, 0.72],
+                                ['Random Forest', 0.9083, 0.91, 0.91, 0.91],
+                                ['AdaBoost 1', 0.9805, 0.98, 0.98, 0.98],
+                                ['AdaBoost 2', 0.9844, 0.98, 0.98, 0.98]]), 
+                                columns=['Model', 'Test Acc', 'Precision', 'Recall', 'F1'])
 
 df2 = pd.melt(df, id_vars=['Model'], value_vars=["Test Acc", "Precision", "Recall", "F1"])
 df2['value'] = df2['value'].astype('float')
