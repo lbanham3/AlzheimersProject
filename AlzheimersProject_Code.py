@@ -1,6 +1,6 @@
-# Course Project
-# Course: CDA
-# Date: 11/03/2022
+# Alzheimer's fMRI Brain Scan Classification Project
+# Author: Laura Banham
+# Date Started: 11/03/2022
 
 import numpy as np
 import pandas as pd
